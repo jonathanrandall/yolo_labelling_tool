@@ -1,5 +1,7 @@
 # YOLO Labeling Tool
 
+[image_thumbnail](https://github.com/jonathanrandall/yolo_labelling_tool/blob/main/thumbnail.png)
+
 A GUI-based annotation tool for creating YOLO format datasets with support for bounding boxes and keypoints (pose estimation).
 
 ## Features
@@ -198,3 +200,4 @@ Feel free to submit issues or pull requests for improvements.
 ## License
 
 MIT License (or specify your license)
+

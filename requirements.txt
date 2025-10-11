@@ -1,0 +1,13 @@
+# YOLO Labeling Tool Requirements
+
+# Image processing
+Pillow>=9.0.0
+
+# YOLO model support
+ultralytics>=8.0.0
+
+# Note: tkinter is required but comes pre-installed with most Python distributions
+# If you get tkinter import errors, install it via your system package manager:
+# - Ubuntu/Debian: sudo apt-get install python3-tk
+# - Fedora: sudo dnf install python3-tkinter
+# - macOS/Windows: Usually included with Python installation

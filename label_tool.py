@@ -413,6 +413,11 @@ class YOLOLabelTool:
                 if ann['type'] == 'box':
                     x1, y1, x2, y2 = ann['coords']
                     if x1 <= img_x <= x2 and y1 <= img_y <= y2:
+                        # If clicking on already selected box, prompt to change class
+                        if i == self.selected_box_idx:
+                            self.change_box_class(i)
+                            return
+                        # Otherwise, select this box
                         self.selected_box_idx = i
                         self.display_image()
                         return
@@ -447,25 +452,29 @@ class YOLOLabelTool:
                         if not clicked_kp:
                             # Not clicking on keypoint, check if we should select box or add new keypoint
                             if self.selected_box_idx == i:
-                                # Already selected, add new keypoint
-                                try:
-                                    class_id = int(self.class_var.get())
-                                    if 'keypoints' not in ann:
-                                        ann['keypoints'] = []
-                                    ann['keypoints'].append({
-                                        'class': class_id,
-                                        'coords': (img_x, img_y),
-                                        'visible': 1
-                                    })
-                                    self.display_image()
-                                    self.status_var.set(f"Added keypoint class {class_id} at ({int(img_x)}, {int(img_y)})")
-                                except ValueError:
-                                    messagebox.showerror("Error", "Invalid class ID")
+                                # Already selected - check if Control key is pressed to change class
+                                if event.state & 0x0004:  # Control key modifier
+                                    self.change_box_class(i)
+                                else:
+                                    # Add new keypoint
+                                    try:
+                                        class_id = int(self.class_var.get())
+                                        if 'keypoints' not in ann:
+                                            ann['keypoints'] = []
+                                        ann['keypoints'].append({
+                                            'class': class_id,
+                                            'coords': (img_x, img_y),
+                                            'visible': 1
+                                        })
+                                        self.display_image()
+                                        self.status_var.set(f"Added keypoint class {class_id} at ({int(img_x)}, {int(img_y)})")
+                                    except ValueError:
+                                        messagebox.showerror("Error", "Invalid class ID")
                             else:
                                 # Select this box
                                 self.selected_box_idx = i
                                 self.display_image()
-                                self.status_var.set(f"Selected box {i} (class {ann['class']}). Click inside to add keypoints.")
+                                self.status_var.set(f"Selected box {i} (class {ann['class']}). Click inside to add keypoints, Ctrl+click to change class.")
                         clicked_box = True
                         break
 
@@ -873,6 +882,79 @@ class YOLOLabelTool:
 
         tk.Button(button_frame, text="Save", command=save_settings, bg='lightgreen', width=10).pack(side=tk.LEFT, padx=5)
         tk.Button(button_frame, text="Cancel", command=cancel, bg='lightcoral', width=10).pack(side=tk.RIGHT, padx=5)
+
+    def change_box_class(self, box_idx):
+        """Change the class of a selected box"""
+        if box_idx >= len(self.annotations):
+            return
+
+        ann = self.annotations[box_idx]
+        if ann['type'] != 'box':
+            return
+
+        current_class = ann['class']
+
+        # Create a simple dialog to get new class number
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Change Box Class")
+        dialog.geometry("350x150")
+        dialog.transient(self.root)
+
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (dialog.winfo_width() // 2)
+        y = (dialog.winfo_screenheight() // 2) - (dialog.winfo_height() // 2)
+        dialog.geometry(f"+{x}+{y}")
+
+        # Now grab focus after window is positioned
+        dialog.grab_set()
+
+        # Current class label
+        current_label = tk.Label(dialog, text=f"Current class: {current_class}")
+        if current_class in self.model_names:
+            current_label.config(text=f"Current class: {current_class} ({self.model_names[current_class]})")
+        current_label.pack(pady=10)
+
+        # Instruction label
+        instruction_label = tk.Label(dialog, text="Enter any class number (0, 1, 2, ...)",
+                                     font=('TkDefaultFont', 9, 'italic'), fg='gray')
+        instruction_label.pack(pady=(0, 5))
+
+        # Entry for new class
+        entry_frame = tk.Frame(dialog)
+        entry_frame.pack(pady=5)
+        tk.Label(entry_frame, text="New class number:").pack(side=tk.LEFT, padx=5)
+        class_entry = tk.Entry(entry_frame, width=10)
+        class_entry.pack(side=tk.LEFT, padx=5)
+        class_entry.delete(0, tk.END)
+        class_entry.focus_set()
+
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=10)
+
+        def apply_change():
+            try:
+                new_class = int(class_entry.get())
+                if new_class < 0:
+                    messagebox.showerror("Error", "Class must be non-negative", parent=dialog)
+                    return
+                ann['class'] = new_class
+                self.display_image()
+                self.status_var.set(f"Changed box class to {new_class}")
+                dialog.destroy()
+            except ValueError:
+                messagebox.showerror("Error", "Invalid class number", parent=dialog)
+
+        def cancel():
+            dialog.destroy()
+
+        # Bind Enter key to apply
+        class_entry.bind('<Return>', lambda e: apply_change())
+        class_entry.bind('<Escape>', lambda e: cancel())
+
+        tk.Button(button_frame, text="Apply", command=apply_change, bg='lightgreen', width=10).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=cancel, bg='lightcoral', width=10).pack(side=tk.LEFT, padx=5)
 
     def save_and_next(self):
         """Save current annotations and move to next image"""

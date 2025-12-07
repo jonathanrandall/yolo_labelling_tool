@@ -6,6 +6,21 @@
 
 A GUI-based annotation tool for creating YOLO format datasets with support for bounding boxes and keypoints (pose estimation).
 
+## Updates
+
+### Class Re-assignment Feature (Latest)
+You can now easily change the class number of any bounding box after it's been created or detected via inference:
+
+- **Box Mode**: Click once to select a box, then click again on the same box to open the class change dialog
+- **Keypoint Mode**: Select a box, then **Ctrl+Click** on it to change its class
+
+This is especially useful when:
+- Correcting inference results from a pre-trained model
+- Re-labeling boxes with different class IDs
+- Adding new class types that weren't in the original model predictions
+
+The dialog shows the current class and allows you to enter any class number (including new classes not in the model). Press **Enter** to apply or **Escape** to cancel.
+
 ## Features
 
 - Draw and edit bounding boxes
